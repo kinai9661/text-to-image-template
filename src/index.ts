@@ -26,7 +26,7 @@ const HTML_PAGE = `
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 800px;
+            max-width: 900px;
             width: 100%;
             padding: 40px;
         }
@@ -72,6 +72,33 @@ const HTML_PAGE = `
         textarea:focus {
             outline: none;
             border-color: #667eea;
+        }
+
+        select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .model-info {
+            margin-top: 8px;
+            padding: 10px;
+            background: #f0f4ff;
+            border-left: 3px solid #667eea;
+            border-radius: 5px;
+            font-size: 0.9em;
+            color: #555;
         }
 
         .button-group {
@@ -203,6 +230,30 @@ const HTML_PAGE = `
             color: white;
         }
 
+        .model-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .badge-premium {
+            background: #ffd700;
+            color: #333;
+        }
+
+        .badge-fast {
+            background: #4caf50;
+            color: white;
+        }
+
+        .badge-quality {
+            background: #2196f3;
+            color: white;
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 20px;
@@ -221,7 +272,21 @@ const HTML_PAGE = `
 <body>
     <div class="container">
         <h1>🎨 AI 文生图</h1>
-        <p class="subtitle">使用 AI 将您的文字描述转换为精美图像</p>
+        <p class="subtitle">使用多种 AI 模型将您的文字描述转换为精美图像</p>
+
+        <div class="input-group">
+            <label for="model">选择 AI 模型</label>
+            <select id="model">
+                <option value="@cf/black-forest-labs/flux-1-schnell">FLUX.1 Schnell <span class="badge-fast">⚡ 快速</span></option>
+                <option value="@cf/stabilityai/stable-diffusion-xl-base-1.0" selected>Stable Diffusion XL 1.0 <span class="badge-quality">🎯 平衡</span></option>
+                <option value="@cf/bytedance/stable-diffusion-xl-lightning">SDXL Lightning <span class="badge-fast">⚡ 超快</span></option>
+                <option value="@cf/lykon/dreamshaper-8-lcm">DreamShaper 8 LCM <span class="badge-quality">🎨 艺术</span></option>
+                <option value="@cf/runwayml/stable-diffusion-v1-5-inpainting">SD 1.5 Inpainting <span class="badge-quality">✏️ 修复</span></option>
+            </select>
+            <div class="model-info" id="modelInfo">
+                <strong>Stable Diffusion XL 1.0:</strong> 平衡质量与速度，适合大多数场景，生成高质量的真实感或艺术风格图像。
+            </div>
+        </div>
 
         <div class="input-group">
             <label for="prompt">输入提示词 (Prompt)</label>
@@ -235,10 +300,13 @@ const HTML_PAGE = `
             <h3>💡 示例提示词 (点击使用):</h3>
             <div class="example-tags">
                 <span class="example-tag">cyberpunk cat</span>
-                <span class="example-tag">a beautiful landscape with mountains and lake</span>
-                <span class="example-tag">futuristic city at night, neon lights</span>
-                <span class="example-tag">cute robot playing with flowers</span>
-                <span class="example-tag">abstract art, colorful, vibrant</span>
+                <span class="example-tag">a beautiful landscape with mountains and lake, sunset</span>
+                <span class="example-tag">futuristic city at night, neon lights, cinematic</span>
+                <span class="example-tag">cute robot playing with flowers in a garden</span>
+                <span class="example-tag">abstract art, colorful, vibrant, modern style</span>
+                <span class="example-tag">anime girl with blue hair, detailed face</span>
+                <span class="example-tag">realistic portrait of a samurai warrior</span>
+                <span class="example-tag">fantasy dragon flying over castle</span>
             </div>
         </div>
 
@@ -263,13 +331,50 @@ const HTML_PAGE = `
     </div>
 
     <script>
+        const modelDescriptions = {
+            '@cf/black-forest-labs/flux-1-schnell': {
+                name: 'FLUX.1 Schnell',
+                desc: '最新 FLUX 模型，生成速度极快（2-4秒），图像质量出色，适合需要快速迭代的场景。',
+                badge: 'fast'
+            },
+            '@cf/stabilityai/stable-diffusion-xl-base-1.0': {
+                name: 'Stable Diffusion XL 1.0',
+                desc: '平衡质量与速度，适合大多数场景，生成高质量的真实感或艺术风格图像。',
+                badge: 'quality'
+            },
+            '@cf/bytedance/stable-diffusion-xl-lightning': {
+                name: 'SDXL Lightning',
+                desc: '字节跳动优化版本，生成速度快，适合批量生成和快速原型设计。',
+                badge: 'fast'
+            },
+            '@cf/lykon/dreamshaper-8-lcm': {
+                name: 'DreamShaper 8 LCM',
+                desc: '艺术风格模型，擅长生成梦幻、插画风格的图像，色彩鲜艳丰富。',
+                badge: 'quality'
+            },
+            '@cf/runwayml/stable-diffusion-v1-5-inpainting': {
+                name: 'SD 1.5 Inpainting',
+                desc: '图像修复模型，可用于编辑和修复图像的特定区域。',
+                badge: 'quality'
+            }
+        };
+
         const promptInput = document.getElementById('prompt');
+        const modelSelect = document.getElementById('model');
+        const modelInfo = document.getElementById('modelInfo');
         const generateBtn = document.getElementById('generateBtn');
         const clearBtn = document.getElementById('clearBtn');
         const loading = document.getElementById('loading');
         const error = document.getElementById('error');
         const resultContainer = document.getElementById('resultContainer');
         const resultImage = document.getElementById('resultImage');
+
+        // Update model info when selection changes
+        modelSelect.addEventListener('change', () => {
+            const selectedModel = modelSelect.value;
+            const info = modelDescriptions[selectedModel];
+            modelInfo.innerHTML = `<strong>${info.name}:</strong> ${info.desc}`;
+        });
 
         // Example tags click handler
         document.querySelectorAll('.example-tag').forEach(tag => {
@@ -288,6 +393,7 @@ const HTML_PAGE = `
         // Generate button
         generateBtn.addEventListener('click', async () => {
             const prompt = promptInput.value.trim();
+            const model = modelSelect.value;
             
             if (!prompt) {
                 showError('请输入提示词！');
@@ -305,7 +411,7 @@ const HTML_PAGE = `
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ prompt })
+                    body: JSON.stringify({ prompt, model })
                 });
 
                 if (!response.ok) {
@@ -359,11 +465,28 @@ export default {
 		// Handle image generation on POST /generate
 		if (request.method === 'POST' && url.pathname === '/generate') {
 			try {
-				const body = await request.json() as { prompt: string };
+				const body = await request.json() as { prompt: string; model?: string };
 				const prompt = body.prompt?.trim();
+				const model = body.model || '@cf/stabilityai/stable-diffusion-xl-base-1.0';
 
 				if (!prompt) {
 					return new Response(JSON.stringify({ error: 'Prompt is required' }), {
+						status: 400,
+						headers: { 'content-type': 'application/json' },
+					});
+				}
+
+				// Validate model
+				const allowedModels = [
+					'@cf/black-forest-labs/flux-1-schnell',
+					'@cf/stabilityai/stable-diffusion-xl-base-1.0',
+					'@cf/bytedance/stable-diffusion-xl-lightning',
+					'@cf/lykon/dreamshaper-8-lcm',
+					'@cf/runwayml/stable-diffusion-v1-5-inpainting'
+				];
+
+				if (!allowedModels.includes(model)) {
+					return new Response(JSON.stringify({ error: 'Invalid model' }), {
 						status: 400,
 						headers: { 'content-type': 'application/json' },
 					});
@@ -373,10 +496,7 @@ export default {
 					prompt: prompt,
 				};
 
-				const response = await env.AI.run(
-					'@cf/stabilityai/stable-diffusion-xl-base-1.0',
-					inputs
-				);
+				const response = await env.AI.run(model, inputs);
 
 				return new Response(response, {
 					headers: {
@@ -385,6 +505,7 @@ export default {
 					},
 				});
 			} catch (error) {
+				console.error('Image generation error:', error);
 				return new Response(JSON.stringify({ error: 'Failed to generate image' }), {
 					status: 500,
 					headers: { 'content-type': 'application/json' },
