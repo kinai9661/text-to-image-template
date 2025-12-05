@@ -527,13 +527,11 @@ const HTML_PAGE = `
             icon.classList.toggle('rotated');
         }
 
-        // Update model info when selection changes
         modelSelect.addEventListener('change', () => {
             const selectedModel = modelSelect.value;
             const info = modelDescriptions[selectedModel];
-            modelInfo.innerHTML = `<strong>${info.name}:</strong> ${info.desc}`;
+            modelInfo.innerHTML = '<strong>' + info.name + ':</strong> ' + info.desc;
             
-            // Show/hide FLUX.2 options
             if (info.supportsMultiImage) {
                 flux2Options.style.display = 'block';
             } else {
@@ -543,9 +541,8 @@ const HTML_PAGE = `
             }
         });
 
-        // Handle image uploads
         referenceImagesInput.addEventListener('change', async (e) => {
-            const files = Array.from(e.target.files).slice(0, 4); // Max 4 images
+            const files = Array.from(e.target.files).slice(0, 4);
             
             for (const file of files) {
                 if (uploadedImages.length >= 4) break;
@@ -561,7 +558,6 @@ const HTML_PAGE = `
                 reader.readAsDataURL(file);
             }
             
-            // Reset input
             referenceImagesInput.value = '';
         });
 
@@ -570,10 +566,7 @@ const HTML_PAGE = `
             uploadedImages.forEach((img, index) => {
                 const div = document.createElement('div');
                 div.className = 'preview-item';
-                div.innerHTML = `
-                    <img src="${img.dataUrl}" alt="Reference ${index}">
-                    <button class="remove-btn" onclick="removeImage(${index})">×</button>
-                `;
+                div.innerHTML = '<img src="' + img.dataUrl + '" alt="Reference ' + index + '"><button class="remove-btn" onclick="removeImage(' + index + ')">×</button>';
                 previewImagesContainer.appendChild(div);
             });
         }
@@ -583,14 +576,12 @@ const HTML_PAGE = `
             renderPreviews();
         };
 
-        // Example tags click handler
         document.querySelectorAll('.example-tag').forEach(tag => {
             tag.addEventListener('click', () => {
                 promptInput.value = tag.textContent;
             });
         });
 
-        // Clear button
         clearBtn.addEventListener('click', () => {
             promptInput.value = '';
             uploadedImages = [];
@@ -599,7 +590,6 @@ const HTML_PAGE = `
             error.style.display = 'none';
         });
 
-        // Generate button
         generateBtn.addEventListener('click', async () => {
             const prompt = promptInput.value.trim();
             const model = modelSelect.value;
@@ -615,20 +605,17 @@ const HTML_PAGE = `
                 error.style.display = 'none';
                 resultContainer.classList.remove('show');
 
-                // Check if using FLUX.2 with images
                 const isFlux2 = model === '@cf/black-forest-labs/flux-2-dev';
                 const hasImages = uploadedImages.length > 0;
 
                 let response;
                 
                 if (isFlux2 && hasImages) {
-                    // Use FormData for FLUX.2 with images
                     const formData = new FormData();
                     formData.append('prompt', prompt);
                     
-                    // Add images with proper naming
                     for (let i = 0; i < uploadedImages.length; i++) {
-                        formData.append(`input_image_${i}`, uploadedImages[i].file);
+                        formData.append('input_image_' + i, uploadedImages[i].file);
                     }
                     
                     response = await fetch('/generate', {
@@ -636,7 +623,6 @@ const HTML_PAGE = `
                         body: formData
                     });
                 } else {
-                    // Use JSON for other models or FLUX.2 without images
                     response = await fetch('/generate', {
                         method: 'POST',
                         headers: {
@@ -670,7 +656,6 @@ const HTML_PAGE = `
             error.style.display = 'block';
         }
 
-        // Enter key to generate
         promptInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && e.ctrlKey) {
                 generateBtn.click();
@@ -689,7 +674,6 @@ export default {
 	async fetch(request, env): Promise<Response> {
 		const url = new URL(request.url);
 
-		// Serve UI on GET /
 		if (request.method === 'GET' && url.pathname === '/') {
 			return new Response(HTML_PAGE, {
 				headers: {
@@ -698,12 +682,10 @@ export default {
 			});
 		}
 
-		// Handle image generation on POST /generate
 		if (request.method === 'POST' && url.pathname === '/generate') {
 			try {
 				const contentType = request.headers.get('content-type') || '';
 				
-				// Check if it's multipart/form-data (for FLUX.2 with images)
 				if (contentType.includes('multipart/form-data')) {
 					const formData = await request.formData();
 					const prompt = formData.get('prompt') as string;
@@ -715,7 +697,6 @@ export default {
 						});
 					}
 
-					// Collect reference images
 					const images: File[] = [];
 					for (let i = 0; i < 4; i++) {
 						const img = formData.get(`input_image_${i}`);
@@ -724,18 +705,15 @@ export default {
 						}
 					}
 
-					// Create new FormData for AI request
 					const aiFormData = new FormData();
 					aiFormData.append('prompt', prompt);
 					
-					// Add images to AI request
 					for (let i = 0; i < images.length; i++) {
 						const arrayBuffer = await images[i].arrayBuffer();
 						const blob = new Blob([arrayBuffer]);
 						aiFormData.append(`input_image_${i}`, blob);
 					}
 
-					// Call FLUX.2 model
 					const response = await env.AI.run(
 						'@cf/black-forest-labs/flux-2-dev',
 						aiFormData
@@ -748,7 +726,6 @@ export default {
 						},
 					});
 				} else {
-					// JSON request for other models
 					const body = await request.json() as { prompt: string; model?: string };
 					const prompt = body.prompt?.trim();
 					const model = body.model || '@cf/stabilityai/stable-diffusion-xl-base-1.0';
@@ -760,7 +737,6 @@ export default {
 						});
 					}
 
-					// Validate model
 					const allowedModels = [
 						'@cf/black-forest-labs/flux-2-dev',
 						'@cf/black-forest-labs/flux-1-schnell',
@@ -777,7 +753,6 @@ export default {
 						});
 					}
 
-					// For FLUX.2 without images, still need to use FormData
 					if (model === '@cf/black-forest-labs/flux-2-dev') {
 						const formData = new FormData();
 						formData.append('prompt', prompt);
@@ -791,7 +766,6 @@ export default {
 							},
 						});
 					} else {
-						// Other models use JSON input
 						const inputs = {
 							prompt: prompt,
 						};
@@ -815,7 +789,6 @@ export default {
 			}
 		}
 
-		// 404 for other routes
 		return new Response('Not Found', { status: 404 });
 	},
 } satisfies ExportedHandler<Env>;
